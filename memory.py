@@ -17,18 +17,22 @@ class ContextMemory:
     def read(self,chat_id) -> list[dict[str,str]]:
         self.create_user_folder(chat_id)
         history = []
-        with (self.user / 'context.jsonl').open('a+',encoding='utf-8') as context_json:
-            context_json.seek(0)
-            content = context_json.readlines()
+        try:
+            with (self.user / 'context.jsonl').open('r',encoding='utf-8') as context_json:
+                content = context_json.readlines()
 
-            for line in content:
-                if line.strip():
-                    history.append(json.loads(line))
+                for line in content:
+                    if line.strip():
+                        message = json.loads(line)
+                        message.pop('time',None)
+                        history.append(message) 
+        except FileNotFoundError:
+            return history
         return history
             
-    def write(self,chat_id,message):
+    def write(self,chat_id,message):#expects dict for message
         self.create_user_folder(chat_id)
         message['time'] = datetime.now().isoformat()
         with (self.user / 'context.jsonl').open('a+',encoding='utf-8') as context_json:
-            json.dump(message,context_json)
+            json.dump(message,context_json,ensure_ascii=False)
             context_json.write('\n')
