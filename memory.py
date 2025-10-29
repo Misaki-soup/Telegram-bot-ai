@@ -36,3 +36,14 @@ class ContextMemory:
         with (self.user / 'context.jsonl').open('a+',encoding='utf-8') as context_json:
             json.dump(message,context_json,ensure_ascii=False)
             context_json.write('\n')
+
+    def rewrite(self,chat_id,messages):#will take list and convert it to dict
+        self.create_user_folder(chat_id)
+        with (self.user / 'context.jsonl').open('w',encoding='utf-8') as context_json:
+            for message in messages:  # Loop through each message
+                message_copy = message.copy()  # Don't modify original dict
+                message_copy['time'] = datetime.now().isoformat()
+                json.dump(message_copy,context_json,ensure_ascii=False)
+                context_json.write('\n')
+
+

@@ -6,13 +6,20 @@ import asyncio
 
 
 class AI_handler:
-    def __init__(self,token):           
-        self.client = AsyncGroq(api_key = token)
+    def __init__(self):
+        load_dotenv()
+        helper_api = os.getenv('HELPER_API')
+        main_api =os.getenv('GROQ_TOKEN')
+        self.helper_client = AsyncGroq(api_key=helper_api)          
+        self.client = AsyncGroq(api_key=main_api)
         self.temp_mem = ContextMemory()
 
     async def generate(self,user_input,chat_id):
         
         history = self.temp_mem.read(chat_id=chat_id)
+        if len(history) >= 9:
+            await self.create_context(chat_id=chat_id)
+
         user_message = {'role':'user','content':user_input} #adjust input to dict format for write function
 
         if not history or history[0].get('role') != 'system':
@@ -38,34 +45,69 @@ class AI_handler:
         self.temp_mem.write(chat_id = chat_id,message=assistant_response) 
         return response
 
+    async def create_context(self,chat_id):   #helper bot
+        system_prompt = """
+You are a conversation summarizer. Your task is to compress a conversation history into a SHORT, information-dense context summary.
 
-class Helper:
-    def __init__(self):
-        load_dotenv()
-        self.helper_client = AsyncGroq(os.getenv('HELPER_API'))
+RULES:
+1. Maximum length: 300-500 tokens
+2. Write in English (even if conversation is in other languages)
+3. Focus on KEY INFORMATION only
+4. Include what was discussed, decided, and still pending
+5. Preserve technical details, names, numbers, and specific requests
+6. Note user's preferences and communication style
+7. DO NOT include greetings, small talk, or redundant information
 
-    async def create_context(self,system,context):
-        handled_context = await self.client.chat.completions.create(
+FORMAT YOUR SUMMARY AS:
+Topic: [Main subject of conversation]
+Key Points:
+- [Most important point 1]
+- [Most important point 2]
+- [etc., max 5-7 points]
+
+Decisions/Solutions:
+- [What was decided or solved]
+
+User Preferences:
+- [Any preferences user mentioned: language, style, specific requirements]
+
+Pending/Unresolved:
+- [Questions not answered, tasks not completed]
+
+Technical Details:
+- [Important code, commands, configurations, model names, etc.]
+
+Context Notes:
+- [Any other critical context needed to continue the conversation naturally]
+"""
+        chat = self.temp_mem.read(chat_id=chat_id)
+        to_compress = chat[1:-2]
+
+        handled_context = await self.helper_client.chat.completions.create(
             messages = [
                 {
                     'role':'system',
-                    'content':system
+                    'content':system_prompt
                 },
                 {
                     'role':'user',
-                    'content':context  
+                    'content':str(to_compress)  
                 }
             ],
             model = 'llama-3.3-70b-versatile',
-            reasoning_format='hidden',
-            temperature = 0.3) 
-
+            temperature = 0.3,
+            max_completion_tokens = 600) 
+        
         response = handled_context.choices[0].message.content
-        return response
+        assistant_response = {
+            'role':'system',
+            'content':response
+        }
+
+        self.temp_mem.rewrite(chat_id = chat_id,messages=[chat[0],assistant_response]+chat[-2:]) 
+
+
 
 if __name__ ==  '__main__':
-    load_dotenv()
-    token = os.getenv('GROQ_TOKEN')
-    
-    ai = AI_handler(token)
+    ai = AI_handler()
     asyncio.run(ai.generate(input('You: '), chat_id='test user'))

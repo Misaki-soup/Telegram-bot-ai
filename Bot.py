@@ -6,7 +6,7 @@ import os
 
 load_dotenv()
 bot = AsyncTeleBot(os.getenv('TG_TOKEN'))
-ai = AI_handler(os.getenv('GROQ_TOKEN'))
+ai = AI_handler()
     
 
 @bot.message_handler(commands=['help', 'start'])
