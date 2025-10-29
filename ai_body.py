@@ -57,7 +57,8 @@ class Helper:
                 }
             ],
             model = 'llama-3.3-70b-versatile',
-            reasoning_format='hidden') 
+            reasoning_format='hidden',
+            temperature = 0.3) 
 
         response = handled_context.choices[0].message.content
         return response
