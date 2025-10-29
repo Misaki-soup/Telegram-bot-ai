@@ -39,8 +39,32 @@ class AI_handler:
         return response
 
 
+class Helper:
+    def __init__(self):
+        load_dotenv()
+        self.helper_client = AsyncGroq(os.getenv('HELPER_API'))
+
+    async def create_context(self,system,context):
+        handled_context = await self.client.chat.completions.create(
+            messages = [
+                {
+                    'role':'system',
+                    'content':system
+                },
+                {
+                    'role':'user',
+                    'content':context  
+                }
+            ],
+            model = 'llama-3.3-70b-versatile',
+            reasoning_format='hidden') 
+
+        response = handled_context.choices[0].message.content
+        return response
+
 if __name__ ==  '__main__':
     load_dotenv()
     token = os.getenv('GROQ_TOKEN')
+    
     ai = AI_handler(token)
     asyncio.run(ai.generate(input('You: '), chat_id='test user'))
