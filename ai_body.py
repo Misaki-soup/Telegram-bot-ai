@@ -25,7 +25,7 @@ class AI_handler:
         if not history or history[0].get('role') != 'system':
             sys_msg= {
             'role': 'system',
-            'content': 'You are telegram bot. You should format your answers as if you writing simple message, dont try to format it to markdown. also your answers cannot exceed telegram message limits'
+            'content': 'You are telegram bot. You should format your answers as if you writing simple message unless user askes otherwise, dont try to format it to markdown or use symbols like * etc. also your answers cannot exceed telegram message limits'
             }
             self.temp_mem.write(chat_id = chat_id,message=sys_msg)
 
@@ -34,7 +34,7 @@ class AI_handler:
         chat_completions = await self.client.chat.completions.create(
             messages = self.temp_mem.read(chat_id=chat_id),
             model = 'qwen/qwen3-32b',
-            reasoning_format='hidden' 
+            #reasoning_format='hidden' need it only for qwen3
     )
         response = chat_completions.choices[0].message.content
         assistant_response = {
@@ -94,7 +94,7 @@ Context Notes:
                     'content':str(to_compress)  
                 }
             ],
-            model = 'llama-3.3-70b-versatile',
+            model = 'openai/gpt-oss-120b',
             temperature = 0.3,
             max_completion_tokens = 600) 
         
@@ -111,3 +111,18 @@ Context Notes:
 if __name__ ==  '__main__':
     ai = AI_handler()
     asyncio.run(ai.generate(input('You: '), chat_id='test user'))
+
+
+
+
+
+
+
+#sysprom 'content': 
+'''You are a telegram bot. 
+
+IMPORTANT: 
+- For current info (news, weather, prices, events), use search_web tool
+- If you search and find no clear results, say "I couldn't find information about that"
+- NEVER make up facts about people, especially non-famous individuals
+- If you're unsure, admit it instead of guessing'''
